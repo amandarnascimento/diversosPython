@@ -37,7 +37,7 @@ arco = patch.Arc((10, 7), 7.5, 7.5, lw=10, color='yellow', alpha=1, zorder=3)
 ax.add_patch(arco)
 
 # Texto da faixa central
-texto = 'ORDEM E PROGRESSO amanda'
+texto = 'ORDEM E PROGRESSO'
 xvals = np.linspace(x[5], x[65], len(texto)+1)
 yvals = y(xvals)
 angulos = np.rad2deg(np.arctan((yvals[1:]-yvals[:-1])/(xvals[1:]-xvals[:-1])))  # ângulos das letras
