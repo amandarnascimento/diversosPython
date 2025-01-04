@@ -1,0 +1,75 @@
+import requests
+from datetime import datetime
+
+# Função para obter as cotações atuais
+def obter_cotacoes():
+    try:
+        # URL da API para cotação
+        url = "https://api.exchangerate-api.com/v4/latest/BRL"
+        resposta = requests.get(url)
+        dados = resposta.json()
+
+        # Retorna as cotações e a data da atualização
+        return dados['rates'], dados['date']
+    except Exception as e:
+        print("Erro ao obter as cotações:", e)
+        return None, None
+
+# Lista de moedas disponíveis
+moedas_disponiveis = {
+    "USD": "Moeda Americana",        
+    "EUR": "Moeda Europeia",         
+    "GBP": "Moeda Britânica",        
+    "ARS": "Moeda Argentina",        
+    "JPY": "Moeda Japonesa",         
+    "CAD": "Moeda Canadense",        
+    "AUD": "Moeda Australiana",     
+    "CNY": "Moeda Chinesa",          
+    "RUB": "Moeda Russa",            
+    "INR": "Moeda Indiana",          
+    "KRW": "Moeda Sul-Coreana",      
+    "PYG": "Moeda Paraguaia",        
+    "COP": "Moeda Colombiana"        
+}
+
+# Obter a lista de cotações
+cotas, data_extracao = obter_cotacoes()
+
+if cotas:
+    while True:
+        print("\nMoedas disponíveis para conversão:\n")
+        opcoes = list(moedas_disponiveis.items())
+        for idx, (codigo, nome) in enumerate(opcoes, start=1):
+            print(f"{idx} - {nome} ({codigo})")
+
+        # Escolha da moeda
+        escolha = input("\nDigite o número correspondente à moeda desejada: ")
+        if escolha.isdigit() and 1 <= int(escolha) <= len(opcoes):
+            moeda = opcoes[int(escolha) - 1][0]
+
+            # Entrada do valor em reais
+            try:
+                reais = float(input("\nQuantos reais você deseja converter? "))
+            except ValueError:
+                print("Por favor, insira um valor numérico válido.")
+                continue
+
+            # Cotação escolhida
+            cotacao_escolhida = cotas[moeda]
+            cotacao_inversa = 1 / cotacao_escolhida  # Cotação do Real em relação à moeda
+            valor_convertido = reais * cotacao_escolhida  # Multiplica o valor em reais pela cotação
+
+            data_formatada = datetime.strptime(data_extracao, "%Y-%m-%d").strftime("%d/%m/%Y")
+
+            print(f"\nData da cotação: {data_formatada}")
+            print(f"A cotação do {moedas_disponiveis[moeda]} ({moeda}) no momento está: R$ {cotacao_inversa:.2f} por 1 {moeda}")
+            print(f"O valor de R$ {reais:.2f} convertido para {moedas_disponiveis[moeda]} será de {valor_convertido:.2f} {moeda}.")
+        else:
+            print("\nOpção inválida. Tente novamente.")
+
+        continuar = input("\nDeseja realizar outra conversão? (s/n): ").strip().lower()
+        if continuar != 's':
+            print("Programa encerrado :) ")
+            break
+else:
+    print("\nNão foi possível obter as cotações. Tente novamente mais tarde.")
