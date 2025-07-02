@@ -1,0 +1,239 @@
+import pygame
+import random
+import sys
+
+CORES = [
+    (0, 0, 0),
+    (120, 37, 179),
+    (100, 179, 179),
+    (80, 34, 22),
+    (80, 134, 22),
+    (180, 34, 22),
+    (180, 34, 122),
+]
+
+class Peca:
+    x = 0
+    y = 0
+
+    formatos = [
+        [[1, 5, 9, 13], [4, 5, 6, 7]],
+        [[4, 5, 9, 10], [2, 6, 5, 9]],
+        [[6, 7, 9, 10], [1, 5, 6, 10]],
+        [[1, 2, 5, 9], [0, 4, 5, 6], [1, 5, 9, 8], [4, 5, 6, 10]],
+        [[1, 2, 6, 10], [5, 6, 7, 9], [2, 6, 10, 11], [3, 5, 6, 7]],
+        [[1, 4, 5, 6], [1, 4, 5, 9], [4, 5, 6, 9], [1, 5, 6, 9]],
+        [[1, 2, 5, 6]],
+    ]
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.tipo = random.randint(0, len(self.formatos) - 1)
+        self.cor = random.randint(1, len(CORES) - 1)
+        self.rotacao = 0
+
+    def imagem(self):
+        return self.formatos[self.tipo][self.rotacao]
+
+    def girar(self):
+        self.rotacao = (self.rotacao + 1) % len(self.formatos[self.tipo])
+
+class Tetris:
+    def __init__(self, altura, largura, nivel):
+        self.nivel = nivel
+        self.pontuacao = 0
+        self.estado = "inicio"
+        self.grade = []
+        self.altura = altura
+        self.largura = largura
+        self.x = 100
+        self.y = 60
+        self.zoom = 20
+        self.peca = None
+        for i in range(altura):
+            self.grade.append([0] * largura)
+
+    def nova_peca(self):
+        self.peca = Peca(3, 0)
+
+    def colide(self):
+        for i in range(4):
+            for j in range(4):
+                if i * 4 + j in self.peca.imagem():
+                    if i + self.peca.y > self.altura - 1 or \
+                       j + self.peca.x > self.largura - 1 or \
+                       j + self.peca.x < 0 or \
+                       self.grade[i + self.peca.y][j + self.peca.x] > 0:
+                        return True
+        return False
+
+    def remover_linhas(self):
+        linhas = 0
+        for i in range(1, self.altura):
+            if 0 not in self.grade[i]:
+                linhas += 1
+                for i1 in range(i, 1, -1):
+                    self.grade[i1] = self.grade[i1 - 1][:]
+        self.pontuacao += linhas ** 2
+
+    def cair_ate_base(self):
+        while not self.colide():
+            self.peca.y += 1
+        self.peca.y -= 1
+        self.congelar()
+
+    def descer(self):
+        self.peca.y += 1
+        if self.colide():
+            self.peca.y -= 1
+            self.congelar()
+
+    def congelar(self):
+        for i in range(4):
+            for j in range(4):
+                if i * 4 + j in self.peca.imagem():
+                    self.grade[i + self.peca.y][j + self.peca.x] = self.peca.cor
+        self.remover_linhas()
+        self.nova_peca()
+        if self.colide():
+            self.estado = "fim"
+
+    def mover_lateral(self, dx):
+        x_antigo = self.peca.x
+        self.peca.x += dx
+        if self.colide():
+            self.peca.x = x_antigo
+
+    def girar(self):
+        r_antiga = self.peca.rotacao
+        self.peca.girar()
+        if self.colide():
+            self.peca.rotacao = r_antiga
+
+def mostrar_tela_velocidade():
+    largura, altura = 400, 500
+    tela = pygame.display.set_mode((largura, altura))
+    pygame.display.set_caption("Tetris - Escolha a Velocidade")
+    fonte = pygame.font.SysFont('Calibri', 28, True)
+    botoes = []
+    velocidade_escolhida = None
+
+    for i in range(5):
+        ret = pygame.Rect(60 + i * 60, 180, 40, 40)
+        botoes.append((i + 1, ret))
+
+    botao_iniciar = pygame.Rect(150, 300, 100, 50)
+
+    selecionando = True
+    while selecionando:
+        tela.fill((240, 240, 240))
+        titulo = fonte.render("Escolha a velocidade (1 a 5)", True, (0, 0, 0))
+        tela.blit(titulo, (50, 100))
+
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                for valor, ret in botoes:
+                    if ret.collidepoint(evento.pos):
+                        velocidade_escolhida = valor
+                if botao_iniciar.collidepoint(evento.pos) and velocidade_escolhida:
+                    return velocidade_escolhida
+
+        # Desenhar botões de velocidade
+        for valor, ret in botoes:
+            cor = (0, 200, 0) if velocidade_escolhida == valor else (180, 180, 180)
+            pygame.draw.rect(tela, cor, ret)
+            txt = fonte.render(str(valor), True, (0, 0, 0))
+            tela.blit(txt, (ret.x + 10, ret.y + 5))
+
+        # Desenhar botão iniciar
+        pygame.draw.rect(tela, (100, 200, 100), botao_iniciar)
+        txt = fonte.render("Iniciar", True, (255, 255, 255))
+        tela.blit(txt, (botao_iniciar.x + 10, botao_iniciar.y + 10))
+
+        pygame.display.flip()
+
+# Início do jogo
+pygame.init()
+nivel = mostrar_tela_velocidade()
+
+# Criar janela do jogo
+tela = pygame.display.set_mode((400, 500))
+pygame.display.set_caption("Tetris")
+jogo = Tetris(20, 10, nivel)
+relogio = pygame.time.Clock()
+contador = 0
+pressionando_baixo = False
+FPS = 25
+rodando = True
+
+while rodando:
+    if jogo.peca is None:
+        jogo.nova_peca()
+
+    contador += 1
+    if contador > 100000:
+        contador = 0
+
+    if contador % (FPS // jogo.nivel // 2) == 0 or pressionando_baixo:
+        if jogo.estado == "inicio":
+            jogo.descer()
+
+    for evento in pygame.event.get():
+        if evento.type == pygame.QUIT:
+            rodando = False
+        elif evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_UP:
+                jogo.girar()
+            elif evento.key == pygame.K_DOWN:
+                pressionando_baixo = True
+            elif evento.key == pygame.K_LEFT:
+                jogo.mover_lateral(-1)
+            elif evento.key == pygame.K_RIGHT:
+                jogo.mover_lateral(1)
+            elif evento.key == pygame.K_SPACE:
+                jogo.cair_ate_base()
+            elif evento.key == pygame.K_ESCAPE:
+                jogo = Tetris(20, 10, nivel)
+        elif evento.type == pygame.KEYUP:
+            if evento.key == pygame.K_DOWN:
+                pressionando_baixo = False
+
+    tela.fill((255, 255, 255))
+
+    for i in range(jogo.altura):
+        for j in range(jogo.largura):
+            pygame.draw.rect(tela, (210, 210, 210), [jogo.x + jogo.zoom * j, jogo.y + jogo.zoom * i, jogo.zoom, jogo.zoom], 1)
+            if jogo.grade[i][j] > 0:
+                pygame.draw.rect(tela, CORES[jogo.grade[i][j]],
+                                 [jogo.x + jogo.zoom * j + 1,
+                                  jogo.y + jogo.zoom * i + 1,
+                                  jogo.zoom - 2, jogo.zoom - 1])
+
+    if jogo.peca is not None:
+        for i in range(4):
+            for j in range(4):
+                if i * 4 + j in jogo.peca.imagem():
+                    pygame.draw.rect(tela, CORES[jogo.peca.cor],
+                                     [jogo.x + jogo.zoom * (j + jogo.peca.x) + 1,
+                                      jogo.y + jogo.zoom * (i + jogo.peca.y) + 1,
+                                      jogo.zoom - 2, jogo.zoom - 2])
+
+    fonte = pygame.font.SysFont('Calibri', 25, True, False)
+    fonte_grande = pygame.font.SysFont('Calibri', 60, True, False)
+    texto_pontuacao = fonte.render("Pontuação: " + str(jogo.pontuacao), True, (0, 0, 0))
+    texto_game_over = fonte_grande.render("Game Over", True, (255, 100, 100))
+    texto_esc = fonte.render("Pressione ESC para reiniciar", True, (255, 100, 100))
+
+    tela.blit(texto_pontuacao, [10, 10])
+    if jogo.estado == "fim":
+        tela.blit(texto_game_over, [70, 200])
+        tela.blit(texto_esc, [50, 270])
+
+    pygame.display.flip()
+    relogio.tick(FPS)
+
+pygame.quit()
