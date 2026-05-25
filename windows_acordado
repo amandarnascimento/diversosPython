@@ -1,0 +1,30 @@
+#Mantendo o Windows acordado...
+
+import ctypes
+import time
+
+# Constantes do Windows
+ES_CONTINUOUS = 0x80000000
+ES_SYSTEM_REQUIRED = 0x00000001
+ES_DISPLAY_REQUIRED = 0x00000002
+
+def impedir_suspensao():
+    ctypes.windll.kernel32.SetThreadExecutionState(
+        ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED
+    )
+
+def permitir_suspensao():
+    ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS)
+
+print("Mantendo o Windows acordado...")
+print("Deixe esta janela aberta.")
+print("Para parar, pressione CTRL + C.")
+
+try:
+    while True:
+        impedir_suspensao()
+        time.sleep(60)
+
+except KeyboardInterrupt:
+    permitir_suspensao()
+    print("\nScript finalizado. O Windows voltou ao comportamento normal.")
